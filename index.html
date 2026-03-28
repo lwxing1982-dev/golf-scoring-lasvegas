@@ -128,26 +128,28 @@ table.sc{width:100%;border-collapse:collapse;font-size:13px;background:#fff;}
 .par-sel:focus{outline:none;border-color:#5b9bd5;}
 
 /* Score cell: badge on top, dropdown below */
-.score-cell{display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 0;}
+.score-cell{display:flex;flex-direction:row;align-items:center;gap:4px;justify-content:center;padding:2px 0;}
 
 /* Group badge */
 .grp-badge{
   display:inline-flex;align-items:center;justify-content:center;
-  width:22px;height:14px;border-radius:4px;
-  font-size:9px;font-weight:800;letter-spacing:.02em;line-height:1;
+  width:28px;height:20px;border-radius:4px;
+  font-size:9px;font-weight:800;line-height:1;
+  color:white;flex-shrink:0;white-space:nowrap;letter-spacing:0;
 }
-.badge-A{background:#e74c3c;color:white;}
-.badge-B{background:#2980b9;color:white;}
-/* Invisible spacer — same size, no content, keeps layout stable */
-.badge-hidden{width:22px;height:14px;visibility:hidden;}
+.badge-A{background:#e74c3c;}
+.badge-B{background:#2980b9;}
+/* Invisible spacer — keeps layout stable when badge not shown */
+.badge-hidden{width:28px;height:20px;visibility:hidden;flex-shrink:0;}
 
 /* Score dropdown */
 .score-sel{
-  width:50px;padding:4px 2px;text-align:center;
+  width:46px;padding:4px 2px;text-align:center;
   border:1.5px solid #ddd;border-radius:6px;
   font-family:'DM Mono',monospace;font-size:14px;font-weight:500;
   background:white;cursor:pointer;transition:background .12s,border-color .12s;
   -webkit-appearance:none;appearance:none;
+  flex-shrink:0;
 }
 .score-sel:focus{outline:none;border-color:var(--green-light);}
 
@@ -285,10 +287,10 @@ table.sc{width:100%;border-collapse:collapse;font-size:13px;background:#fff;}
         </div>
         <span style="font-size:11px;font-weight:600;color:#555;margin-left:4px;">分组：</span>
         <div class="leg-item">
-          <span class="leg-badge" style="background:#e74c3c;">A</span><span>A组</span>
+          <span class="leg-badge" style="background:#e74c3c;width:20px;height:13px;border-radius:3px;display:inline-block;"></span><span>A组</span>
         </div>
         <div class="leg-item">
-          <span class="leg-badge" style="background:#2980b9;">B</span><span>B组</span>
+          <span class="leg-badge" style="background:#2980b9;width:20px;height:13px;border-radius:3px;display:inline-block;"></span><span>B组</span>
         </div>
       </div>
       <div class="score-wrap">
@@ -468,34 +470,57 @@ function computeAllLV() {
     const h = S.holes[hi];
     const sA = grp.A.map(pid => S.scores[`${pid}_${h.number}`]);
     const sB = grp.B.map(pid => S.scores[`${pid}_${h.number}`]);
-    const minA=Math.min(...sA),maxA=Math.max(...sA),sumA=sA.reduce((a,b)=>a+b,0);
-    const minB=Math.min(...sB),maxB=Math.max(...sB),sumB=sB.reduce((a,b)=>a+b,0);
-    const bW = minA<minB?'A':minA>minB?'B':'tie';
-    const wW = maxA<maxB?'A':maxA>maxB?'B':'tie';
-    const tW = sumA<sumB?'A':sumA>sumB?'B':'tie';
-    let pA=0,pB=0;
-    [bW,wW,tW].forEach(w=>{ if(w==='A')pA++; else if(w==='B')pB++; });
-    const winner = pA>pB?'A':pB>pA?'B':'tie';
-    const finalPts = winner==='tie' ? 0 : Math.abs(pA-pB)*mult;
-    results.push({winner, finalPts, mult, grp, h, hi});
-    if (winner==='tie') mult++;
-    else { deriveNextGrouping(hi); mult=1; }
+    const minA=Math.min(...sA), maxA=Math.max(...sA), sumA=sA.reduce((a,b)=>a+b,0);
+    const minB=Math.min(...sB), maxB=Math.max(...sB), sumB=sB.reduce((a,b)=>a+b,0);
+    // Each of the 3 comparisons: lower score wins
+    const bW = minA<minB?'A':minA>minB?'B':'tie';  // best (low) score
+    const wW = maxA<maxB?'A':maxA>maxB?'B':'tie';  // worst (high) score
+    const tW = sumA<sumB?'A':sumA>sumB?'B':'tie';  // total
+    let pA=0, pB=0;
+    if (bW==='A') pA++; else if (bW==='B') pB++;
+    if (wW==='A') pA++; else if (wW==='B') pB++;
+    if (tW==='A') pA++; else if (tW==='B') pB++;
+    // Tie = net zero (pA === pB, covers 0:0, 1:1, etc.)
+    const winner = pA > pB ? 'A' : pB > pA ? 'B' : 'tie';
+    const finalPts = winner==='tie' ? 0 : Math.abs(pA-pB) * mult;
+    results.push({winner, finalPts, mult, pA, pB, bW, wW, tW, grp, h, hi});
+    if (winner==='tie') {
+      // Keep grouping, multiply next hole
+      mult++;
+    } else {
+      // Derive new grouping for next hole based on this hole's scores
+      deriveNextGrouping(hi);
+      mult = 1;
+    }
   }
   return results;
 }
 
-function playerLVCum(results) {
-  const cum = {};
-  S.players.forEach(p => { cum[p.id]=0; });
+// Per-hole points for each player: pid -> [pts|null per hole]
+function playerLVHole(results) {
+  const byHole = {};
+  S.players.forEach(p => { byHole[p.id] = []; });
   results.forEach(r => {
-    if (!r || r.winner==='tie') return;
-    const pp = r.finalPts/2;
     S.players.forEach(p => {
+      if (!r) { byHole[p.id].push(null); return; }
       const inA=r.grp.A.includes(p.id), inB=r.grp.B.includes(p.id);
-      if (!inA && !inB) return;
+      if (!inA && !inB) { byHole[p.id].push(null); return; }
+      if (r.winner==='tie') { byHole[p.id].push(0); return; }
+      const pp = r.finalPts/2;
       const won=(inA&&r.winner==='A')||(inB&&r.winner==='B');
-      cum[p.id] += won ? pp : -pp;
+      byHole[p.id].push(won ? pp : -pp);
     });
+  });
+  return byHole;
+}
+
+function playerLVCum(results) {
+  const byHole = playerLVHole(results);
+  const cum = {};
+  S.players.forEach(p => {
+    cum[p.id] = byHole[p.id]
+      .filter(v => v !== null)
+      .reduce((a,b) => a+b, 0);
   });
   return cum;
 }
@@ -527,6 +552,7 @@ function renderScorecard() {
   const players = S.players;
   const holes = S.holes;
   const lvResults = computeAllLV();
+  const lvByHole = playerLVHole(lvResults);
   const lvCum = playerLVCum(lvResults);
   const curHi = currentHoleIdx();
 
@@ -570,18 +596,27 @@ function renderScorecard() {
         // Badge element or spacer
         let badgeHtml;
         if (showBadge && badge[p.id]) {
-          badgeHtml = `<span class="grp-badge badge-${badge[p.id]}">${badge[p.id]}</span>`;
+          // Show score if hole complete, otherwise show empty coloured square
+          const holePts = lvByHole[p.id] ? lvByHole[p.id][hi] : undefined;
+          let badgeText = '';
+          if (holePts !== null && holePts !== undefined) {
+            // hole is complete (even if 0)
+            badgeText = holePts > 0 ? '+' + fmt(holePts)
+                      : holePts < 0 ? fmt(holePts)
+                      : '0';
+          }
+          badgeHtml = `<span class="grp-badge badge-${badge[p.id]}">${badgeText}</span>`;
         } else {
           badgeHtml = `<span class="badge-hidden"></span>`;
         }
 
         return `<td>
           <div class="score-cell">
-            ${badgeHtml}
             <select class="score-sel ${sCls}" id="si_${key}"
               onchange="onScore('${p.id}',${h.number},${hi},this)">
               ${buildScoreOptions(h.par, val===''?'':+val)}
             </select>
+            ${badgeHtml}
           </div>
         </td>`;
       }).join('')}
@@ -678,6 +713,7 @@ function onParChange(hi, val) {
 // ══════════════════════════════════════
 function refreshAll() {
   const lvResults = computeAllLV();
+  const lvByHole = playerLVHole(lvResults);
   const lvCum = playerLVCum(lvResults);
   const totalPar = S.holes.reduce((a,h)=>a+h.par,0);
   const curHi = currentHoleIdx();
@@ -700,7 +736,7 @@ function refreshAll() {
     }
   });
 
-  // Update badges per hole
+  // Update badges per hole (colour + score text)
   S.holes.forEach((h, hi) => {
     const grp = getGroupForHole(hi);
     const showBadge = hi <= curHi;
@@ -715,7 +751,15 @@ function refreshAll() {
       const bg = grp.A.includes(p.id) ? 'A' : grp.B.includes(p.id) ? 'B' : null;
       if (showBadge && bg) {
         badgeEl.className = `grp-badge badge-${bg}`;
-        badgeEl.textContent = bg;
+        // Score text inside badge
+        const holePts = lvByHole[p.id] ? lvByHole[p.id][hi] : undefined;
+        let badgeText = '';
+        if (holePts !== null && holePts !== undefined) {
+          badgeText = holePts > 0 ? '+' + fmt(holePts)
+                    : holePts < 0 ? '' + fmt(holePts)
+                    : '0';
+        }
+        badgeEl.textContent = badgeText;
       } else {
         badgeEl.className = 'badge-hidden';
         badgeEl.textContent = '';
