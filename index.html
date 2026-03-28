@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Golf · Las Vegas Score</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green-dark: #0a3d2b;
+  --green-light: #1f7a57;
+  --gold: #c9a227;
+  --gold-light: #f0d675;
+  --sand: #f5f0e8;
+  --text-dark: #1a1a1a;
+  --text-muted: #777;
+  --red: #c0392b;
+  --blue-dark: #1a3d6b;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Outfit',sans-serif;
+  background:var(--green-dark);
+  background-image:
+    radial-gradient(ellipse at 20% 10%,rgba(31,122,87,.4) 0%,transparent 60%),
+    radial-gradient(ellipse at 80% 90%,rgba(31,122,87,.25) 0%,transparent 60%);
+  min-height:100vh;color:var(--text-dark);}
+
+/* HEADER */
+.site-header{background:rgba(10,61,43,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid rgba(201,162,39,.3);padding:0 18px;
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;height:54px;}
+.logo{font-family:'DM Serif Display',serif;color:var(--gold);font-size:19px;}
+.logo span{color:rgba(255,255,255,.5);font-size:11px;font-family:'Outfit',sans-serif;
+  font-weight:300;display:block;margin-top:-3px;}
+.hdr-btns{display:flex;gap:7px;}
+.btn{border:none;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;
+  font-weight:500;transition:all .15s;}
+.btn-ghost{background:transparent;border:1px solid rgba(201,162,39,.4);
+  color:var(--gold);padding:6px 13px;font-size:12px;}
+.btn-ghost:hover{background:rgba(201,162,39,.15);}
+.btn-primary{background:var(--gold);color:var(--green-dark);
+  padding:6px 14px;font-size:12px;font-weight:700;}
+.btn-primary:hover{background:var(--gold-light);}
+
+/* LAYOUT */
+main{max-width:980px;margin:0 auto;padding:18px 13px 80px;}
+.tabs{display:flex;gap:3px;margin-bottom:18px;background:rgba(0,0,0,.2);
+  border-radius:10px;padding:3px;}
+.tab{flex:1;padding:9px;text-align:center;border-radius:7px;cursor:pointer;
+  font-size:13px;font-weight:500;color:rgba(255,255,255,.5);
+  border:none;background:transparent;transition:all .2s;}
+.tab.active{background:white;color:var(--green-dark);}
+.panel{display:none;}.panel.active{display:block;}
+
+.card{background:white;border-radius:12px;
+  box-shadow:0 2px 10px rgba(0,0,0,.09);padding:16px;margin-bottom:13px;}
+.card-title{font-family:'DM Serif Display',serif;font-size:16px;
+  color:var(--green-dark);margin-bottom:12px;}
+
+/* SETUP */
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
+@media(max-width:600px){.setup-grid{grid-template-columns:1fr;}}
+.fg{margin-bottom:10px;}
+.fg label{display:block;font-size:11px;font-weight:600;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.fg input,.fg select{width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;
+  border-radius:7px;font-family:'Outfit',sans-serif;font-size:14px;
+  color:var(--text-dark);background:var(--sand);transition:border-color .15s;}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--green-light);background:white;}
+
+/* Tiger card */
+.tiger-card{border-radius:12px;overflow:hidden;position:relative;height:220px;background:#0a2415;}
+.tiger-img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;}
+.tiger-overlay{position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(5,25,12,.88) 0%,rgba(5,25,12,.05) 55%);}
+.tiger-caption{position:absolute;bottom:0;left:0;right:0;padding:14px;}
+.tiger-caption h3{font-family:'DM Serif Display',serif;color:var(--gold);font-size:17px;}
+.tiger-caption p{color:rgba(255,255,255,.6);font-size:11px;margin-top:2px;}
+
+/* Players list */
+.player-item{display:flex;gap:8px;align-items:center;
+  padding:9px 11px;border-radius:8px;margin-bottom:7px;
+  border:1.5px solid #eee;background:white;}
+.pl-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);width:18px;flex-shrink:0;}
+.player-item input[type=text]{flex:1;border:none;background:transparent;
+  font-family:'Outfit',sans-serif;font-size:14px;color:var(--text-dark);outline:none;}
+.player-item input[type=text]::placeholder{color:#ccc;}
+.hcp-wrap{display:flex;align-items:center;gap:4px;}
+.hcp-wrap label{font-size:11px;color:var(--text-muted);}
+.hcp-wrap input{width:44px;padding:4px 5px;border:1.5px solid #e0e0e0;
+  border-radius:5px;font-family:'DM Mono',monospace;font-size:13px;
+  text-align:center;background:var(--sand);}
+.team-badge-setup{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;flex-shrink:0;}
+.team-A-setup{background:#fde8e8;color:#922;}
+.team-B-setup{background:#dbeeff;color:#1a3d6b;}
+
+.random-btn{width:100%;padding:10px;background:transparent;
+  border:1.5px dashed rgba(201,162,39,.5);border-radius:8px;
+  font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;
+  color:var(--gold);cursor:pointer;transition:all .2s;margin-bottom:9px;}
+.random-btn:hover{background:rgba(201,162,39,.1);border-color:var(--gold);}
+.start-btn{width:100%;padding:13px;background:var(--gold);color:var(--green-dark);
+  border:none;border-radius:10px;font-family:'Outfit',sans-serif;
+  font-size:15px;font-weight:700;cursor:pointer;margin-top:12px;transition:background .2s;}
+.start-btn:hover{background:var(--gold-light);}
+
+/* SCORECARD */
+.score-wrap{overflow-x:auto;border-radius:9px;border:1px solid #e0e0e0;}
+table.sc{width:100%;border-collapse:collapse;font-size:13px;background:#fff;}
+.sc thead th{background:var(--green-dark);color:white;
+  padding:9px 6px;text-align:center;font-weight:500;font-size:11px;white-space:nowrap;}
+.sc tbody td{padding:5px 4px;text-align:center;
+  border-bottom:1px solid #f0f0f0;vertical-align:middle;}
+.sc tbody tr:last-child td{border-bottom:none;}
+
+/* Hole number */
+.hole-n{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);}
+
+/* Par dropdown — blue tint */
+.par-sel{
+  width:42px;padding:4px 2px;text-align:center;
+  border:1.5px solid #aac4e8;border-radius:5px;
+  font-family:'DM Mono',monospace;font-size:13px;font-weight:600;
+  color:var(--blue-dark);background:#e8f2fb;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+}
+.par-sel:focus{outline:none;border-color:#5b9bd5;}
+
+/* Score cell: badge on top, dropdown below */
+.score-cell{display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 0;}
+
+/* Group badge */
+.grp-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:14px;border-radius:4px;
+  font-size:9px;font-weight:800;letter-spacing:.02em;line-height:1;
+}
+.badge-A{background:#e74c3c;color:white;}
+.badge-B{background:#2980b9;color:white;}
+/* Invisible spacer — same size, no content, keeps layout stable */
+.badge-hidden{width:22px;height:14px;visibility:hidden;}
+
+/* Score dropdown */
+.score-sel{
+  width:50px;padding:4px 2px;text-align:center;
+  border:1.5px solid #ddd;border-radius:6px;
+  font-family:'DM Mono',monospace;font-size:14px;font-weight:500;
+  background:white;cursor:pointer;transition:background .12s,border-color .12s;
+  -webkit-appearance:none;appearance:none;
+}
+.score-sel:focus{outline:none;border-color:var(--green-light);}
+
+/* Score result colours
+   Eagle (≤ par-2) → deep green
+   Birdie (par-1)  → light pink
+   Par    (par)    → light green
+   Bogey+          → white                    */
+.sc-eagle {background:#1a7a3a!important;color:white;   border-color:#155e2e;}
+.sc-birdie{background:#fce4ec!important;color:#880e4f; border-color:#f48fb1;}
+.sc-par   {background:#e8f5e9!important;color:#1b5e20; border-color:#a5d6a7;}
+/* bogey / double / more → plain white, no special class needed */
+
+/* Summary rows */
+.sub-row td{background:#f4f8fd!important;font-weight:600;
+  font-family:'DM Mono',monospace;font-size:12px;}
+.tot-row td{background:#daeaf9!important;font-weight:700;
+  font-family:'DM Mono',monospace;font-size:13px;}
+.las-cum-row td{background:#d4f0e2!important;
+  font-family:'DM Mono',monospace;font-size:13px;font-weight:700;}
+
+.tot-under{color:var(--green-dark);}
+.tot-over{color:var(--red);}
+.tot-even{color:var(--blue-dark);}
+
+/* Legend */
+.legend-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;
+  align-items:center;font-size:12px;color:var(--text-muted);}
+.leg-item{display:flex;align-items:center;gap:5px;}
+.leg-swatch{width:14px;height:14px;border-radius:3px;border:1.5px solid;}
+.leg-badge{display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:14px;border-radius:4px;font-size:9px;font-weight:800;color:white;}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+  z-index:999;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:white;border-radius:14px;padding:22px;max-width:400px;width:90%;}
+.modal h3{font-family:'DM Serif Display',serif;font-size:19px;
+  color:var(--green-dark);margin-bottom:7px;}
+.modal p{font-size:13px;color:var(--text-muted);margin-bottom:12px;}
+.sr{display:flex;gap:7px;}
+.sr input{flex:1;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:7px;
+  font-family:'DM Mono',monospace;font-size:11px;background:var(--sand);}
+.copied{display:none;font-size:12px;color:var(--green-light);font-weight:600;margin-top:7px;}
+
+.sec-title{font-family:'DM Serif Display',serif;font-size:20px;color:white;margin-bottom:2px;}
+.sec-sub{font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">⛳ GolfScore <span>Las Vegas Edition</span></div>
+  <div class="hdr-btns">
+    <button class="btn btn-ghost" onclick="shareGame()">分享</button>
+    <button class="btn btn-primary" onclick="saveGame()">保存</button>
+  </div>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('setup')">⚙️ 设置</button>
+    <button class="tab" onclick="switchTab('score')">📋 计分卡</button>
+  </div>
+
+  <!-- ══ SETUP ══ -->
+  <div id="panel-setup" class="panel active">
+    <p class="sec-title">游戏设置</p>
+    <p class="sec-sub">配置球员信息，随机分组后开始</p>
+    <div class="setup-grid">
+      <div class="tiger-card">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Tiger_Woods_at_the_2018_Ryder_Cup_%28cropped%29.jpg/800px-Tiger_Woods_at_the_2018_Ryder_Cup_%28cropped%29.jpg"
+          alt="Tiger Woods" class="tiger-img" onerror="this.style.display='none'">
+        <div class="tiger-overlay"></div>
+        <div class="tiger-caption">
+          <h3>Tiger Woods</h3>
+          <p>15-time Major Champion · Augusta 2019</p>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0;">
+        <div class="card-title">👥 球员配置</div>
+        <div id="players-list"></div>
+        <button class="random-btn" onclick="randomGroups()">🎲 随机分组</button>
+        <div class="fg" style="margin-bottom:0;">
+          <label>洞数</label>
+          <select id="hole-count" onchange="updateHoleCount()">
+            <option value="9">9洞</option>
+            <option value="18" selected>18洞</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <button class="start-btn" onclick="startGame()">开始游戏 →</button>
+  </div>
+
+  <!-- ══ SCORECARD ══ -->
+  <div id="panel-score" class="panel">
+    <p class="sec-title">计分卡</p>
+    <p class="sec-sub">徽章 = 本洞分组 · 打完一洞自动重新分组</p>
+    <div class="card">
+      <div class="legend-row">
+        <span style="font-size:11px;font-weight:600;color:#555;">成绩：</span>
+        <div class="leg-item">
+          <div class="leg-swatch" style="background:#1a7a3a;border-color:#155e2e;"></div>
+          <span>Eagle+</span>
+        </div>
+        <div class="leg-item">
+          <div class="leg-swatch" style="background:#fce4ec;border-color:#f48fb1;"></div>
+          <span>Birdie</span>
+        </div>
+        <div class="leg-item">
+          <div class="leg-swatch" style="background:#e8f5e9;border-color:#a5d6a7;"></div>
+          <span>Par</span>
+        </div>
+        <div class="leg-item">
+          <div class="leg-swatch" style="background:white;border-color:#ddd;"></div>
+          <span>Bogey+</span>
+        </div>
+        <span style="font-size:11px;font-weight:600;color:#555;margin-left:4px;">分组：</span>
+        <div class="leg-item">
+          <span class="leg-badge" style="background:#e74c3c;">A</span><span>A组</span>
+        </div>
+        <div class="leg-item">
+          <span class="leg-badge" style="background:#2980b9;">B</span><span>B组</span>
+        </div>
+      </div>
+      <div class="score-wrap">
+        <table class="sc">
+          <thead id="sc-head"></thead>
+          <tbody id="sc-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="modal-bg" id="share-modal">
+  <div class="modal">
+    <h3>分享游戏</h3>
+    <p>复制链接发给队友，打开即可查看实时计分。</p>
+    <div class="sr">
+      <input type="text" id="share-url" readonly>
+      <button class="btn btn-primary" onclick="copyUrl()">复制</button>
+    </div>
+    <p class="copied" id="copied-msg">✓ 已复制！</p>
+    <button class="btn btn-ghost" style="margin-top:12px;width:100%;" onclick="closeModal()">关闭</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let S = {
+  holeCount: 18,
+  players: [
+    {id:'p1',name:'',hcp:0,team:'A'},
+    {id:'p2',name:'',hcp:0,team:'A'},
+    {id:'p3',name:'',hcp:0,team:'B'},
+    {id:'p4',name:'',hcp:0,team:'B'},
+  ],
+  holes: [],
+  scores: {},
+  holeGroups: []
+};
+
+const PAR18=[4,4,3,5,4,3,5,4,4,4,4,3,5,4,3,5,4,4];
+const PAR9 =[4,4,3,5,4,3,5,4,4];
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+function init() {
+  const saved = localStorage.getItem('gls5');
+  if (saved) { try { S = JSON.parse(saved); } catch(e){} }
+  const p = new URLSearchParams(location.search);
+  if (p.get('d')) { try { S = JSON.parse(atob(p.get('d'))); } catch(e){} }
+  if (!S.holes || !S.holes.length) initHoles();
+  if (!S.holeGroups) S.holeGroups = [];
+  document.getElementById('hole-count').value = S.holeCount || 18;
+  renderPlayers();
+}
+
+function initHoles() {
+  const n = S.holeCount || 18;
+  const pars = (n===9 ? PAR9 : PAR18).slice(0,n);
+  S.holes = pars.map((par,i) => ({number:i+1, par}));
+}
+
+function updateHoleCount() {
+  S.holeCount = +document.getElementById('hole-count').value;
+  initHoles();
+}
+
+// ══════════════════════════════════════
+// TABS
+// ══════════════════════════════════════
+function switchTab(name) {
+  ['setup','score'].forEach((t,i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', t===name);
+    document.getElementById('panel-'+t).classList.toggle('active', t===name);
+  });
+  if (name==='score') renderScorecard();
+}
+
+// ══════════════════════════════════════
+// PLAYERS
+// ══════════════════════════════════════
+function renderPlayers() {
+  document.getElementById('players-list').innerHTML = S.players.map((p,i) => `
+    <div class="player-item">
+      <span class="pl-num">${i+1}</span>
+      <input type="text" value="${p.name}" placeholder="球员${i+1}姓名"
+        oninput="S.players[${i}].name=this.value">
+      <div class="hcp-wrap">
+        <label>差点</label>
+        <input type="number" value="${p.hcp}" min="0" max="54"
+          oninput="S.players[${i}].hcp=+this.value">
+      </div>
+      <span class="team-badge-setup team-${p.team||'A'}-setup">${p.team||'?'}</span>
+    </div>`).join('');
+}
+
+function randomGroups() {
+  const idx = S.players.map((_,i) => i);
+  for (let i=idx.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [idx[i],idx[j]] = [idx[j],idx[i]];
+  }
+  const half = Math.ceil(idx.length/2);
+  idx.forEach((pi,pos) => { S.players[pi].team = pos<half ? 'A' : 'B'; });
+  S.holeGroups = [];
+  renderPlayers();
+  saveGame();
+}
+
+function startGame() {
+  document.querySelectorAll('#players-list .player-item').forEach((row,i) => {
+    const txt = row.querySelector('input[type=text]').value.trim();
+    S.players[i].name = txt || ('球员'+(i+1));
+  });
+  initHoles();
+  saveGame();
+  switchTab('score');
+}
+
+// ══════════════════════════════════════
+// GROUPING
+// ══════════════════════════════════════
+function getGroupForHole(hi) {
+  if (S.holeGroups && S.holeGroups[hi]) return S.holeGroups[hi];
+  return {
+    A: S.players.filter(p => p.team==='A').map(p => p.id),
+    B: S.players.filter(p => p.team==='B').map(p => p.id)
+  };
+}
+
+function holeComplete(hi) {
+  const h = S.holes[hi];
+  return S.players.every(p => !!S.scores[`${p.id}_${h.number}`]);
+}
+
+// Find the index of the "current" hole:
+// the first hole that is not yet fully scored.
+// If all holes done, returns holes.length (past the end).
+function currentHoleIdx() {
+  for (let i=0; i<S.holes.length; i++) {
+    if (!holeComplete(i)) return i;
+  }
+  return S.holes.length; // all done
+}
+
+function deriveNextGrouping(hi) {
+  if (hi+1 >= S.holes.length) return;
+  const h = S.holes[hi];
+  const ranked = [...S.players]
+    .map(p => ({pid:p.id, score: S.scores[`${p.id}_${h.number}`] || 9999}))
+    .sort((a,b) => a.score - b.score);
+  if (ranked.length >= 4) {
+    S.holeGroups[hi+1] = {
+      A: [ranked[0].pid, ranked[3].pid],
+      B: [ranked[1].pid, ranked[2].pid]
+    };
+  } else {
+    S.holeGroups[hi+1] = getGroupForHole(hi);
+  }
+}
+
+// ══════════════════════════════════════
+// LAS VEGAS
+// ══════════════════════════════════════
+function computeAllLV() {
+  const results = [];
+  let mult = 1;
+  for (let hi=0; hi<S.holes.length; hi++) {
+    if (!holeComplete(hi)) { results.push(null); continue; }
+    const grp = getGroupForHole(hi);
+    const h = S.holes[hi];
+    const sA = grp.A.map(pid => S.scores[`${pid}_${h.number}`]);
+    const sB = grp.B.map(pid => S.scores[`${pid}_${h.number}`]);
+    const minA=Math.min(...sA),maxA=Math.max(...sA),sumA=sA.reduce((a,b)=>a+b,0);
+    const minB=Math.min(...sB),maxB=Math.max(...sB),sumB=sB.reduce((a,b)=>a+b,0);
+    const bW = minA<minB?'A':minA>minB?'B':'tie';
+    const wW = maxA<maxB?'A':maxA>maxB?'B':'tie';
+    const tW = sumA<sumB?'A':sumA>sumB?'B':'tie';
+    let pA=0,pB=0;
+    [bW,wW,tW].forEach(w=>{ if(w==='A')pA++; else if(w==='B')pB++; });
+    const winner = pA>pB?'A':pB>pA?'B':'tie';
+    const finalPts = winner==='tie' ? 0 : Math.abs(pA-pB)*mult;
+    results.push({winner, finalPts, mult, grp, h, hi});
+    if (winner==='tie') mult++;
+    else { deriveNextGrouping(hi); mult=1; }
+  }
+  return results;
+}
+
+function playerLVCum(results) {
+  const cum = {};
+  S.players.forEach(p => { cum[p.id]=0; });
+  results.forEach(r => {
+    if (!r || r.winner==='tie') return;
+    const pp = r.finalPts/2;
+    S.players.forEach(p => {
+      const inA=r.grp.A.includes(p.id), inB=r.grp.B.includes(p.id);
+      if (!inA && !inB) return;
+      const won=(inA&&r.winner==='A')||(inB&&r.winner==='B');
+      cum[p.id] += won ? pp : -pp;
+    });
+  });
+  return cum;
+}
+
+// ══════════════════════════════════════
+// SCORE DROPDOWN OPTIONS
+// ══════════════════════════════════════
+// Returns [min, max] stroke range for a given par
+function strokeRange(par) {
+  if (par <= 3) return [1, par+3];   // par3 → 1..6
+  if (par === 4) return [1, par+4];  // par4 → 1..8
+  return [2, par+5];                 // par5 → 2..10
+}
+
+function buildScoreOptions(par, selected) {
+  const [mn, mx] = strokeRange(par);
+  let opts = `<option value="">-</option>`;
+  for (let v=mn; v<=mx; v++) {
+    const sel = selected===v ? 'selected' : '';
+    opts += `<option value="${v}" ${sel}>${v}</option>`;
+  }
+  return opts;
+}
+
+// ══════════════════════════════════════
+// SCORECARD RENDER
+// ══════════════════════════════════════
+function renderScorecard() {
+  const players = S.players;
+  const holes = S.holes;
+  const lvResults = computeAllLV();
+  const lvCum = playerLVCum(lvResults);
+  const curHi = currentHoleIdx();
+
+  // HEAD
+  document.getElementById('sc-head').innerHTML = `<tr>
+    <th style="width:34px;">洞</th>
+    <th style="width:46px;">Par</th>
+    ${players.map(p => `<th>${p.name||'球员'}</th>`).join('')}
+  </tr>`;
+
+  // BODY
+  let rows = '';
+  holes.forEach((h, hi) => {
+    const grp = getGroupForHole(hi);
+
+    // Badge visibility: show only for completed holes (hi < curHi)
+    // AND the current active hole (hi === curHi)
+    const showBadge = hi <= curHi;
+
+    const badge = {};
+    players.forEach(p => {
+      badge[p.id] = grp.A.includes(p.id) ? 'A' : grp.B.includes(p.id) ? 'B' : null;
+    });
+
+    // Par dropdown options
+    const parOpts = [3,4,5].map(v =>
+      `<option value="${v}" ${h.par===v?'selected':''}>${v}</option>`).join('');
+
+    rows += `<tr>
+      <td class="hole-n">${h.number}</td>
+      <td>
+        <select class="par-sel" onchange="onParChange(${hi},this.value)">
+          ${parOpts}
+        </select>
+      </td>
+      ${players.map(p => {
+        const key = `${p.id}_${h.number}`;
+        const val = S.scores[key] || '';
+        const sCls = val ? scoreCls(+val, h.par) : '';
+
+        // Badge element or spacer
+        let badgeHtml;
+        if (showBadge && badge[p.id]) {
+          badgeHtml = `<span class="grp-badge badge-${badge[p.id]}">${badge[p.id]}</span>`;
+        } else {
+          badgeHtml = `<span class="badge-hidden"></span>`;
+        }
+
+        return `<td>
+          <div class="score-cell">
+            ${badgeHtml}
+            <select class="score-sel ${sCls}" id="si_${key}"
+              onchange="onScore('${p.id}',${h.number},${hi},this)">
+              ${buildScoreOptions(h.par, val===''?'':+val)}
+            </select>
+          </div>
+        </td>`;
+      }).join('')}
+    </tr>`;
+
+    // Front-9 subtotal
+    if (holes.length===18 && hi===8) {
+      const pF = holes.slice(0,9).reduce((a,b)=>a+b.par,0);
+      rows += `<tr class="sub-row">
+        <td>前9</td><td>P${pF}</td>
+        ${players.map(p=>{const t=total(p.id,1,9);return`<td class="${tcls(t,pF)}">${t||'—'}</td>`;}).join('')}
+      </tr>`;
+    }
+  });
+
+  // Back-9 subtotal
+  if (holes.length===18) {
+    const pB = holes.slice(9).reduce((a,b)=>a+b.par,0);
+    rows += `<tr class="sub-row">
+      <td>后9</td><td>P${pB}</td>
+      ${players.map(p=>{const t=total(p.id,10,18);return`<td class="${tcls(t,pB)}">${t||'—'}</td>`;}).join('')}
+    </tr>`;
+  }
+
+  // Total strokes
+  const totalPar = holes.reduce((a,h)=>a+h.par,0);
+  rows += `<tr class="tot-row">
+    <td>总计</td><td>P${totalPar}</td>
+    ${players.map(p=>{
+      const t=total(p.id,1,holes.length);
+      const d=t?t-totalPar:null;
+      const cls=d===null?'':d<0?'tot-under':d>0?'tot-over':'tot-even';
+      const ds=d===null?'—':d===0?'E':d>0?'+'+d:''+d;
+      return`<td class="${cls}" id="tot_${p.id}">${t?t+'<br><small>'+ds+'</small>':'—'}</td>`;
+    }).join('')}
+  </tr>`;
+
+  // Cumulative LV row
+  rows += `<tr class="las-cum-row">
+    <td colspan="2" style="font-size:10px;color:#555;white-space:nowrap;">累计拉斯分</td>
+    ${players.map(p=>{
+      const c=lvCum[p.id];
+      if (c===0 && curHi===0) return `<td id="lc_${p.id}">—</td>`;
+      const col=c>0?'var(--green-dark)':c<0?'var(--red)':'#555';
+      return`<td id="lc_${p.id}" style="color:${col}">${c>0?'+':''}${fmt(c)}</td>`;
+    }).join('')}
+  </tr>`;
+
+  document.getElementById('sc-body').innerHTML = rows;
+}
+
+// ══════════════════════════════════════
+// HANDLERS
+// ══════════════════════════════════════
+function onScore(pid, hole, hi, el) {
+  const key = `${pid}_${hole}`;
+  if (!el.value) {
+    delete S.scores[key];
+  } else {
+    S.scores[key] = +el.value;
+  }
+  // Update this dropdown's colour class immediately
+  const par = S.holes[hi].par;
+  const val = S.scores[key];
+  el.className = 'score-sel' + (val ? ' '+scoreCls(val, par) : '');
+
+  if (holeComplete(hi)) {
+    deriveNextGrouping(hi);
+  } else {
+    // Invalidate derived groupings downstream
+    for (let i=hi+1; i<S.holes.length; i++) delete S.holeGroups[i];
+  }
+  refreshAll();
+}
+
+function onParChange(hi, val) {
+  S.holes[hi].par = +val;
+  // Rebuild score dropdowns for this hole (range may have changed)
+  const h = S.holes[hi];
+  S.players.forEach(p => {
+    const key = `${p.id}_${h.number}`;
+    const sel = document.getElementById('si_'+key);
+    if (!sel) return;
+    const curVal = S.scores[key] || '';
+    sel.innerHTML = buildScoreOptions(h.par, curVal===''?'':+curVal);
+    const v = S.scores[key];
+    sel.className = 'score-sel' + (v ? ' '+scoreCls(v, h.par) : '');
+  });
+  refreshAll();
+}
+
+// ══════════════════════════════════════
+// REFRESH (lightweight — no full re-render)
+// ══════════════════════════════════════
+function refreshAll() {
+  const lvResults = computeAllLV();
+  const lvCum = playerLVCum(lvResults);
+  const totalPar = S.holes.reduce((a,h)=>a+h.par,0);
+  const curHi = currentHoleIdx();
+
+  // Update totals
+  S.players.forEach(p => {
+    const t = total(p.id,1,S.holes.length);
+    const el = document.getElementById('tot_'+p.id);
+    if (el) {
+      const d = t?t-totalPar:null;
+      el.className = d===null?'':d<0?'tot-under':d>0?'tot-over':'tot-even';
+      const ds = d===null?'—':d===0?'E':d>0?'+'+d:''+d;
+      el.innerHTML = t?t+'<br><small>'+ds+'</small>':'—';
+    }
+    const lcEl = document.getElementById('lc_'+p.id);
+    if (lcEl) {
+      const c = lvCum[p.id];
+      if (c===0 && curHi===0) { lcEl.textContent='—'; lcEl.style.color=''; }
+      else { lcEl.style.color=c>0?'var(--green-dark)':c<0?'var(--red)':'#555'; lcEl.textContent=(c>0?'+':'')+fmt(c); }
+    }
+  });
+
+  // Update badges per hole
+  S.holes.forEach((h, hi) => {
+    const grp = getGroupForHole(hi);
+    const showBadge = hi <= curHi;
+    S.players.forEach(p => {
+      const key = `${p.id}_${h.number}`;
+      const sel = document.getElementById('si_'+key);
+      if (!sel) return;
+      const cell = sel.closest('.score-cell');
+      if (!cell) return;
+      const badgeEl = cell.querySelector('.grp-badge, .badge-hidden');
+      if (!badgeEl) return;
+      const bg = grp.A.includes(p.id) ? 'A' : grp.B.includes(p.id) ? 'B' : null;
+      if (showBadge && bg) {
+        badgeEl.className = `grp-badge badge-${bg}`;
+        badgeEl.textContent = bg;
+      } else {
+        badgeEl.className = 'badge-hidden';
+        badgeEl.textContent = '';
+      }
+    });
+  });
+
+  saveGame();
+}
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function scoreCls(s, par) {
+  const d = s-par;
+  if (d <= -2) return 'sc-eagle';
+  if (d === -1) return 'sc-birdie';
+  if (d ===  0) return 'sc-par';
+  return ''; // bogey and worse: plain white
+}
+function total(pid, from, to) {
+  let s=0,c=0;
+  for (let i=from;i<=to;i++) { const v=S.scores[`${pid}_${i}`]; if(v){s+=v;c++;} }
+  return c?s:0;
+}
+function tcls(t,par) { if(!t)return''; const d=t-par; return d<0?'tot-under':d>0?'tot-over':'tot-even'; }
+function fmt(n) { return n%1===0?String(n):n.toFixed(1); }
+
+// ══════════════════════════════════════
+// SAVE / SHARE
+// ══════════════════════════════════════
+function saveGame() { localStorage.setItem('gls5', JSON.stringify(S)); }
+function shareGame() {
+  document.getElementById('share-url').value =
+    location.origin+location.pathname+'?d='+btoa(JSON.stringify(S));
+  document.getElementById('share-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('share-modal').classList.remove('open'); }
+function copyUrl() {
+  navigator.clipboard.writeText(document.getElementById('share-url').value).then(()=>{
+    const m=document.getElementById('copied-msg');
+    m.style.display='block';
+    setTimeout(()=>m.style.display='none',2500);
+  });
+}
+document.getElementById('share-modal').addEventListener('click',e=>{
+  if(e.target.id==='share-modal') closeModal();
+});
+
+init();
+</script>
+</body>
+</html>
